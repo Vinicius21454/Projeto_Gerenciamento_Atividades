@@ -1,0 +1,117 @@
+@use "../variaveis.scss" as *;
+
+.tarefas {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  font-family: 'Arial', sans-serif;
+  margin: 0 auto;
+  background: #0d0d0d; // fundo geral
+
+  .colunas {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+
+    .coluna {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-width: 300px; // largura mínima
+      gap: 1rem;
+      width: 100%;
+    }
+
+    .cards-column {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      height: 100%;
+    }
+
+    .card-tarefa {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      background: #1a1a1a; // fundo do card
+      padding: 1.2rem;
+      border-radius: 0.6rem;
+      width: auto;
+      box-shadow: 0px 6px 15px rgba(0, 255, 100, 0.15);
+      border: 1px solid #00ff88; // borda verde
+
+      .opt-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+      }
+
+      button {
+        background-color: #00ff88;
+        color: #0d0d0d;
+        padding: 0.5rem 1rem;
+        border: none;
+        outline: none;
+        border-radius: 0.4rem;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background-color: #00cc66;
+          transform: scale(1.05);
+        }
+      }
+
+      select {
+        border-radius: 0.3rem;
+        border: 2px solid #333;
+        background-color: #111;
+        color: #fff;
+        padding: 0.5rem;
+        width: auto;
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        &:focus {
+          border-color: #00ff88;
+          box-shadow: 0 0 6px #00ff88;
+          outline: none;
+        }
+
+        &:hover {
+          background-color: #1f1f1f;
+        }
+      }
+
+      .separador-campo {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+
+        .label-campo {
+          font-weight: bold;
+          color: #00ff88;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .colunas {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .coluna {
+    min-width: unset;
+    width: 100%;
+  }
+
+  .cards-column {
+    gap: 10px;
+  }
+}

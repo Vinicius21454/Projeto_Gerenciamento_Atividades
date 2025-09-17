@@ -1,0 +1,124 @@
+@use '../variaveis.scss' as *;
+
+form {
+  width: 85%;
+  display: flex;
+  justify-content: start;
+  align-items: start;
+  flex-direction: column;
+  height: auto;
+  gap: 0.5rem;
+}
+
+.custom-overlay {
+  position: fixed;
+  font-family: 'Arial', sans-serif;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7); // fundo escuro translúcido
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.custom-modal {
+  background: #111; // fundo preto
+  border-radius: 12px;
+  width: 100%;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 500px;
+  position: relative;
+  outline: none;
+  animation: fadeInScale 0.3s ease;
+  box-shadow: 0px 6px 20px rgba(0, 255, 136, 0.2);
+  border: 1px solid #00ff88; // borda verde neon
+
+  h2 {
+    margin-bottom: 16px;
+    font-size: 22px;
+    text-align: center;
+    color: #00ff88;
+    font-weight: bold;
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    margin-top: 12px;
+    color: #e5e5e5;
+  }
+
+  input,
+  select {
+    width: 100%;
+    background-color: #1a1a1a;
+    color: #ffffff;
+    padding: 10px 12px;
+    margin-top: 6px;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    border: 2px solid #333;
+    transition: all 0.3s ease;
+
+    &:focus {
+      border-color: #00ff88;
+      box-shadow: 0 0 6px #00ff88;
+    }
+  }
+
+  button {
+    width: 6rem;
+    padding: 0.6rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    border: none;
+  }
+
+  .btns {
+    display: flex;
+    margin: 1.5rem auto 0 auto;
+    gap: 1rem;
+
+    .saveButton {
+      background-color: #00ff88;
+      color: #0d0d0d;
+
+      &:hover {
+        background-color: #00cc66;
+        transform: scale(1.05);
+      }
+    }
+
+    .exitBottom {
+      background-color: #ff4d4d;
+      color: #fff;
+
+      &:hover {
+        background-color: #cc0000;
+        transform: scale(1.05);
+      }
+    }
+  }
+}
+
+/* animação */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

@@ -1,0 +1,27 @@
+select {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  background-color: #1a1a1a; // fundo escuro
+  color: #ffffff; // texto branco
+  border: 2px solid #333;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  // remove o ícone padrão no Chrome/Safari
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  &:focus {
+    border-color: #00ff88; // verde neon
+    box-shadow: 0 0 6px #00ff88;
+    outline: none;
+  }
+
+  &:hover {
+    background-color: #111;
+    border-color: #00cc66;
+  }
+}

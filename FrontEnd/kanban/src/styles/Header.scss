@@ -1,0 +1,88 @@
+@use '../variaveis.scss' as *;
+@use './main.scss' as *;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+header {
+  padding: 1.2rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(90deg, #0d0d0d, #111); // fundo preto degradê
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  color: #00ff88;
+  flex-wrap: wrap;
+  border-bottom: 2px solid #00ff88; // destaque no header
+  box-shadow: 0px 4px 12px rgba(0, 255, 136, 0.15);
+
+  .titlle {
+    text-align: center;
+    font-weight: bold;
+    font-size: 2rem;
+    letter-spacing: 2px;
+    color: #00ff88;
+    transition: all 0.3s ease;
+
+    &:hover {
+      color: #00cc66;
+      transform: scale(1.05);
+    }
+  }
+
+  .ul-list {
+    display: flex;
+    gap: 1.5rem;
+    list-style-type: none;
+
+    li {
+      position: relative;
+
+      // efeito underline suave ao passar o mouse
+      a {
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+
+        &:hover {
+          color: #00ff88;
+        }
+
+        &::after {
+          content: "";
+          position: absolute;
+          bottom: -5px;
+          left: 0;
+          width: 0%;
+          height: 2px;
+          background: #00ff88;
+          transition: width 0.3s ease;
+        }
+
+        &:hover::after {
+          width: 100%;
+        }
+      }
+    }
+  }
+
+  .tittle-h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffffff;
+
+    @media (max-width: 1170px) {
+      font-size: 1.5rem;
+    }
+  }
+
+  @media (max-width: 1170px) {
+    justify-content: center;
+    flex-direction: column;
+    gap: 1rem;
+
+    .ul-list {
+      gap: 1rem;
+    }
+  }
+}

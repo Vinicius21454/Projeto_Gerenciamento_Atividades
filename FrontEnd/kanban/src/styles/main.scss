@@ -1,0 +1,50 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box; // garante consistência no cálculo de largura/altura
+}
+
+html {
+  scroll-behavior: smooth; // rolagem suave
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column; // Header + Main + Footer em coluna
+  font-family: 'Inter', Arial, sans-serif;
+  background: #0d0d0d; // fundo preto
+  color: #f5f5f5; // texto claro
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased; // suaviza fontes no Chrome/Safari
+  -moz-osx-font-smoothing: grayscale;  // suaviza fontes no Firefox
+}
+
+/* Estilo padrão para links */
+a {
+  color: #00ff88;
+  text-decoration: none;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: #00cc66;
+    text-decoration: underline;
+  }
+}
+
+/* Botões globais */
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Inputs e selects globais */
+input, select, textarea {
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+/* Listas sem marca padrão */
+ul, ol {
+  list-style: none;
+}
