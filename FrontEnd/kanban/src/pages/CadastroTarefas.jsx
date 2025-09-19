@@ -91,60 +91,99 @@ export default function CadastroTarefas() {
   }, []);
 
   return (
-    <section className="section-form">
+    <section className="section-form" aria-labelledby="titulo-cadastro">
       <div className="container-form">
-        <h1 className="title-form">Cadastro de Tarefas</h1>
+        <h1 className="title-form" id="titulo-cadastro">Cadastro de Tarefas</h1>
 
-        <form className="form" onSubmit={handleSubmit(createTask)}>
+        <form
+          className="form"
+          onSubmit={handleSubmit(createTask)}
+          role="form"
+          aria-labelledby="titulo-cadastro"
+        >
           <div className="input">
-            <label>Descrição</label>
+            <label htmlFor="descricao">Descrição</label>
             <input
+              id="descricao"
               type="text"
               {...register("descricao")}
               className={errors.descricao ? "error" : ""}
+              aria-invalid={errors.descricao ? "true" : "false"}
+              aria-describedby={errors.descricao ? "erro-descricao" : undefined}
             />
-            {errors.descricao && <span className="error">{errors.descricao.message}</span>}
+            {errors.descricao && (
+              <span id="erro-descricao" className="error" role="alert">
+                {errors.descricao.message}
+              </span>
+            )}
           </div>
 
           <div className="input">
-            <label>Setor</label>
+            <label htmlFor="setor">Setor</label>
             <input
+              id="setor"
               type="text"
               {...register("setor")}
               className={errors.setor ? "error" : ""}
+              aria-invalid={errors.setor ? "true" : "false"}
+              aria-describedby={errors.setor ? "erro-setor" : undefined}
             />
-            {errors.setor && <span className="error">{errors.setor.message}</span>}
+            {errors.setor && (
+              <span id="erro-setor" className="error" role="alert">
+                {errors.setor.message}
+              </span>
+            )}
           </div>
 
           <div className="input">
-            <label>Usuário</label>
+            <label htmlFor="usuario">Usuário</label>
             <select
+              id="usuario"
               {...register("usuario")}
               className={errors.usuario ? "error" : ""}
+              aria-invalid={errors.usuario ? "true" : "false"}
+              aria-describedby={errors.usuario ? "erro-usuario" : undefined}
             >
               <option value="">Selecione um Usuário</option>
               {users.map((u) => (
                 <option value={u.id} key={u.id}>{u.nome}</option>
               ))}
             </select>
-            {errors.usuario && <span className="error">{errors.usuario.message}</span>}
+            {errors.usuario && (
+              <span id="erro-usuario" className="error" role="alert">
+                {errors.usuario.message}
+              </span>
+            )}
           </div>
 
           <div className="input">
-            <label>Prioridade</label>
+            <label htmlFor="prioridade">Prioridade</label>
             <select
+              id="prioridade"
               {...register("prioridade")}
               className={errors.prioridade ? "error" : ""}
+              aria-invalid={errors.prioridade ? "true" : "false"}
+              aria-describedby={errors.prioridade ? "erro-prioridade" : undefined}
             >
               <option value="">Selecione uma prioridade</option>
               {prioridade.map(a => (
                 <option value={a} key={a}>{a}</option>
               ))}
             </select>
-            {errors.prioridade && <span className="error">{errors.prioridade.message}</span>}
+            {errors.prioridade && (
+              <span id="erro-prioridade" className="error" role="alert">
+                {errors.prioridade.message}
+              </span>
+            )}
           </div>
 
-          <button className="btn" type="submit" disabled={isSubmitting}>
+          <button
+            className="btn"
+            type="submit"
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+            aria-label="Botão para cadastrar tarefa"
+          >
             {isSubmitting ? "Enviando..." : "Cadastrar"}
           </button>
         </form>
