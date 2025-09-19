@@ -80,19 +80,43 @@ export default function CadastroUsuario() {
     <section className="section-form">
       <div className="container-form">
         <h1 className="title-form">Cadastro de Usuário</h1>
-        <form className="form" onSubmit={handleSubmit(createUsers)}>
+        <form className="form" onSubmit={handleSubmit(createUsers)} noValidate>
 
           <div className="input">
-            <label>Nome:</label>
-            <input type="text" {...register("nome")} />
-            {errors.nome && <span className="error">{errors.nome.message}</span>}
+            <label htmlFor="nome">Nome:</label>
+            <input
+              id="nome"
+              type="text"
+              {...register("nome")}
+              aria-invalid={errors.nome ? "true" : "false"}
+              aria-describedby={errors.nome ? "nome-error" : undefined}
+            />
+            {errors.nome && (
+              <span className="error" role="alert" id="nome-error">
+                {errors.nome.message}
+              </span>
+            )}
           </div>
 
           <div className="input">
-            <label>Email:</label>
-            <input type="text" {...register("email")} />
-            {errors.email && <span className="error">{errors.email.message}</span>}
-            {error && <span className="error">{error}</span>}
+            <label htmlFor="email">Email:</label>
+            <input
+              id="email"
+              type="text"
+              {...register("email")}
+              aria-invalid={errors.email ? "true" : "false"}
+              aria-describedby={(errors.email ? "email-error " : "") + (error ? " backend-error" : "") || undefined}
+            />
+            {errors.email && (
+              <span className="error" role="alert" id="email-error">
+                {errors.email.message}
+              </span>
+            )}
+            {error && (
+              <span className="error" role="alert" id="backend-error">
+                {error}
+              </span>
+            )}
           </div>
           <button className="btn" type="submit">Cadastrar</button>
         </form>

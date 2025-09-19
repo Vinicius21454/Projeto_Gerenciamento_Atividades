@@ -138,32 +138,45 @@ export default function GerenciamentoTarefas() {
                                 tasks.filter(task => task.status === statusColumn).map(task => (
                                     <div className="card-tarefa" key={task.id}>
                                         <div className="separador-campo">
-                                            <label className="label-campo">Descrição</label>
-                                            <span>{task.descricao}</span>
+                                            <label className="label-campo" id={`desc-label-${task.id}`}>Descrição</label>
+                                            <span aria-labelledby={`desc-label-${task.id}`}>{task.descricao}</span>
                                         </div>
                                         <div className="separador-campo">
-                                            <label className="label-campo">Setor</label>
-                                            <span>{task.setor}</span>
+                                            <label className="label-campo" id={`setor-label-${task.id}`}>Setor</label>
+                                            <span aria-labelledby={`setor-label-${task.id}`}>{task.setor}</span>
                                         </div>
                                         <div className="separador-campo">
-                                            <label className="label-campo">Prioridade</label>
-                                            <span>{task.prioridade}</span>
+                                            <label className="label-campo" id={`prio-label-${task.id}`}>Prioridade</label>
+                                            <span aria-labelledby={`prio-label-${task.id}`}>{task.prioridade}</span>
                                         </div>
                                         <div className="separador-campo">
-                                            <label className="label-campo">Vinculada A</label>
-                                            <span>{usuarios.find(u => u.id == task.usuario)?.nome || "Usuário não encontrado"}</span>
+                                            <label className="label-campo" id={`user-label-${task.id}`}>Vinculada A</label>
+                                            <span aria-labelledby={`user-label-${task.id}`}>
+                                                {usuarios.find(u => u.id == task.usuario)?.nome || "Usuário não encontrado"}
+                                            </span>
                                         </div>
                                         <div className="opt-actions">
-                                            <button onClick={() => openEditModal(task)}>Editar</button>
-                                            <button onClick={() => deleteTask(task.id)}>Excluir</button>
+                                            <button aria-label={`Editar tarefa: ${task.descricao}`} onClick={() => openEditModal(task)}>Editar</button>
+                                            <button aria-label={`Excluir tarefa: ${task.descricao}`} onClick={() => deleteTask(task.id)}>Excluir</button>
                                         </div>
                                         <div className="separador-campo">
-                                            <select value={task.status} onChange={(e) => setStatusChanges({...statusChanges, [task.id]: e.target.value})}>
+                                            <label htmlFor={`status-select-${task.id}`}>Status</label>
+                                            <select
+                                                id={`status-select-${task.id}`}
+                                                aria-label={`Alterar status da tarefa: ${task.descricao}`}
+                                                value={statusChanges[task.id] || task.status}
+                                                onChange={(e) => setStatusChanges({...statusChanges, [task.id]: e.target.value})}
+                                            >
                                                 <option value="A Fazer">A fazer</option>
                                                 <option value="Fazendo">Fazendo</option>
                                                 <option value="Pronto">Pronto</option>
                                             </select>
-                                            <button onClick={() => updateTask(task.id, { status: statusChanges[task.id] || task.status })}>Alterar Status</button>
+                                            <button
+                                                onClick={() => updateTask(task.id, { status: statusChanges[task.id] || task.status })}
+                                                aria-label={`Confirmar alteração de status para a tarefa: ${task.descricao}`}
+                                            >
+                                                Alterar Status
+                                            </button>
                                         </div>
                                     </div>
                                 ))
@@ -175,41 +188,93 @@ export default function GerenciamentoTarefas() {
                 ))}
 
                 {isModalOpen && (
-                    <ModalComponent onClose={() => setIsModalOpen(false)} isOpen={isModalOpen}>
-                        <h2>Editar Tarefa</h2>
-                        <form onSubmit={handleEditSubmit(handleUpdateTask)}>
-                            <label>Descrição</label>
-                            <input type="text" {...editRegister("descricao")} />
-                            {editErrors.descricao && <span className="error">{editErrors.descricao.message}</span>}
+                    <ModalComponent
+                      onClose={() => setIsModalOpen(false)}
+                      isOpen={isModalOpen}
+                      aria-modal="true"
+                      aria-labelledby="modal-title"
+                    >
+                        <h2 id="modal-title">Editar Tarefa</h2>
+                        <form onSubmit={handleEditSubmit(handleUpdateTask)} noValidate>
+                            <label htmlFor="descricao-input">Descrição</label>
+                            <input
+                                id="descricao-input"
+                                type="text"
+                                {...editRegister("descricao")}
+                                aria-invalid={editErrors.descricao ? "true" : "false"}
+                                aria-describedby={editErrors.descricao ? "descricao-error" : undefined}
+                            />
+                            {editErrors.descricao && (
+                                <span className="error" role="alert" id="descricao-error">
+                                    {editErrors.descricao.message}
+                                </span>
+                            )}
 
-                            <label>Setor</label>
-                            <input type="text" {...editRegister("setor")} />
-                            {editErrors.setor && <span className="error">{editErrors.setor.message}</span>}
+                            <label htmlFor="setor-input">Setor</label>
+                            <input
+                                id="setor-input"
+                                type="text"
+                                {...editRegister("setor")}
+                                aria-invalid={editErrors.setor ? "true" : "false"}
+                                aria-describedby={editErrors.setor ? "setor-error" : undefined}
+                            />
+                            {editErrors.setor && (
+                                <span className="error" role="alert" id="setor-error">
+                                    {editErrors.setor.message}
+                                </span>
+                            )}
 
-                            <label>Prioridade</label>
-                            <select {...editRegister("prioridade")}>
+                            <label htmlFor="prioridade-select">Prioridade</label>
+                            <select
+                                id="prioridade-select"
+                                {...editRegister("prioridade")}
+                                aria-invalid={editErrors.prioridade ? "true" : "false"}
+                                aria-describedby={editErrors.prioridade ? "prioridade-error" : undefined}
+                            >
                                 <option value="Alta">Alta</option>
                                 <option value="Media">Média</option>
                                 <option value="Baixa">Baixa</option>
                             </select>
-                            {editErrors.prioridade && <span className="error">{editErrors.prioridade.message}</span>}
+                            {editErrors.prioridade && (
+                                <span className="error" role="alert" id="prioridade-error">
+                                    {editErrors.prioridade.message}
+                                </span>
+                            )}
 
-                            <label>Usuário</label>
-                            <select {...editRegister("usuario")}>
+                            <label htmlFor="usuario-select">Usuário</label>
+                            <select
+                                id="usuario-select"
+                                {...editRegister("usuario")}
+                                aria-invalid={editErrors.usuario ? "true" : "false"}
+                                aria-describedby={editErrors.usuario ? "usuario-error" : undefined}
+                            >
                                 <option value="">Escolha um usuário</option>
                                 {usuarios.map(user => (
                                     <option key={user.id} value={user.id}>{user.nome}</option>
                                 ))}
                             </select>
-                            {editErrors.usuario && <span className="error">{editErrors.usuario.message}</span>}
+                            {editErrors.usuario && (
+                                <span className="error" role="alert" id="usuario-error">
+                                    {editErrors.usuario.message}
+                                </span>
+                            )}
 
-                            <label>Status</label>
-                            <select {...editRegister("status")}>
+                            <label htmlFor="status-select-modal">Status</label>
+                            <select
+                                id="status-select-modal"
+                                {...editRegister("status")}
+                                aria-invalid={editErrors.status ? "true" : "false"}
+                                aria-describedby={editErrors.status ? "status-error" : undefined}
+                            >
                                 <option value="A Fazer">A Fazer</option>
                                 <option value="Fazendo">Fazendo</option>
                                 <option value="Pronto">Pronto</option>
                             </select>
-                            {editErrors.status && <span className="error">{editErrors.status.message}</span>}
+                            {editErrors.status && (
+                                <span className="error" role="alert" id="status-error">
+                                    {editErrors.status.message}
+                                </span>
+                            )}
 
                             <div className="btns">
                                 <button type="submit" className="saveButton">Salvar</button>
