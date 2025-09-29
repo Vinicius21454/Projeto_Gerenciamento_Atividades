@@ -38,5 +38,15 @@
     "id": 8,
     "nome": "fer fer fer fer fer",
     "email": "email123@4shared.com"
+  },
+  {
+    "id": 9,
+    "nome": "gusta",
+    "email": "gu@gmail.com"
+  },
+  {
+    "id": 10,
+    "nome": "Vinicius de Oliveira",
+    "email": "viniciusoliveira@gmail.com"
   }
 ]

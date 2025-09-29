@@ -1,289 +1,334 @@
-import "../styles/GerenciamentoTarefas.scss"
+import "../styles/GerenciamentoTarefas.scss";
 import React, { useState, useEffect } from 'react';
 import ModalComponent from "../components/Modal";
 import axios from "axios";
-import Swal from 'sweetalert2'
+import Swal from 'sweetalert2';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-
 export default function GerenciamentoTarefas() {
-    const url = "http://127.0.0.1:3000/tasks";
-    const [tasks, setTasks] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingTask, setEditingTask] = useState(null);
-    const [usuarios, setUsers] = useState([]);
-    const [statusChanges, setStatusChanges] = useState({});
+  const url = "http://127.0.0.1:3000/tasks";
+  const [tasks, setTasks] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [usuarios, setUsers] = useState([]);
+  const [draggedTask, setDraggedTask] = useState(null);
 
-    // Esquema de validação completo com todas as regras possíveis
-    const editSchema  = z.object({
-        descricao: z.string()
-            .min(5, "A descrição deve conter no mínimo 5 caracteres")
-            .max(200, "A descrição deve conter no máximo 200 caracteres")
-            .nonempty("A descrição não pode ser vazia"),
-        setor: z.string()
-            .min(2, "O setor deve conter ao menos 2 caracteres")
-            .max(50, "O setor deve conter no máximo 50 caracteres")
-            .nonempty("O setor não pode ser vazio"),
-        prioridade: z.enum(["Alta", "Media", "Baixa"], { 
-            errorMap: () => ({ message: "A prioridade deve ser Alta, Media ou Baixa" }) 
-        }),
-        usuario: z.preprocess(
-            (val) => Number(val),
-            z.number().int().min(1, "Escolha um usuário válido")
-        ),
-        status: z.enum(["A Fazer", "Fazendo", "Pronto"], {
-            errorMap: () => ({ message: "Status inválido" })
-        }).optional()
+  // Schema de validação
+  const taskSchema = z.object({
+    descricao: z.string().min(5).max(200),
+    setor: z.string().min(2).max(50),
+    prioridade: z.enum(["Alta", "Media", "Baixa"]),
+    usuario: z.preprocess((val) => Number(val), z.number().int().min(1)),
+  });
+
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+    resolver: zodResolver(taskSchema)
+  });
+
+  // Buscar tarefas
+  const fetchTasks = async () => {
+    try {
+      const response = await axios.get(url);
+      setTasks(response.data);
+    } catch (error) {
+      console.error("Erro ao buscar tarefas", error);
+      Swal.fire("Erro!", "Não foi possível carregar as tarefas", "error");
+    }
+  };
+
+  // Buscar usuários
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get("http://127.0.0.1:3000/users");
+      setUsers(response.data);
+    } catch (error) {
+      console.error("Erro ao buscar usuários", error);
+    }
+  };
+
+  // Abrir modal de edição
+  const openEditModal = (task) => {
+    setEditingTask(task);
+    setIsModalOpen(true);
+    reset({
+      descricao: task.descricao,
+      setor: task.setor,
+      prioridade: task.prioridade,
+      usuario: task.usuario
+    });
+  };
+
+  // Atualizar tarefa
+  const updateTask = async (id, updatedData) => {
+    try {
+      await axios.patch(`${url}/${id}`, updatedData);
+      setTasks(prev => prev.map(task => 
+        task.id === id ? { ...task, ...updatedData } : task
+      ));
+      Swal.fire("Sucesso!", "Tarefa atualizada com sucesso!", "success");
+    } catch (error) {
+      console.error("Erro ao atualizar tarefa", error);
+      Swal.fire("Erro!", "Não foi possível atualizar a tarefa", "error");
+    }
+  };
+
+  // Deletar tarefa
+  const deleteTask = async (id) => {
+    const result = await Swal.fire({
+      title: "Tem certeza?",
+      text: "Esta ação não pode ser desfeita!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Sim, deletar!",
+      cancelButtonText: "Cancelar"
     });
 
-    const {
-        register: editRegister,
-        handleSubmit: handleEditSubmit,
-        formState: { errors: editErrors },
-        reset: resetEditForm
-    } = useForm({
-        resolver: zodResolver(editSchema),
-        defaultValues: editingTask || {}
-    });
+    if (result.isConfirmed) {
+      try {
+        await axios.delete(`${url}/${id}`);
+        setTasks(prev => prev.filter(task => task.id !== id));
+        Swal.fire("Deletado!", "Tarefa deletada com sucesso.", "success");
+      } catch (error) {
+        console.error("Erro ao deletar tarefa", error);
+        Swal.fire("Erro!", "Não foi possível deletar a tarefa", "error");
+      }
+    }
+  };
 
+  // ✅ DRAG AND DROP SIMPLES E FUNCIONAL
+  const handleDragStart = (e, task) => {
+    setDraggedTask(task);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", task.id.toString());
+    e.currentTarget.classList.add("dragging");
+  };
 
+  const handleDragOver = (e, status) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    e.currentTarget.classList.add("drag-over");
+  };
+
+  const handleDragLeave = (e) => {
+    e.currentTarget.classList.remove("drag-over");
+  };
+
+  const handleDrop = async (e, newStatus) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove("drag-over");
     
+    if (!draggedTask) return;
 
-    // Funções de API
-    async function viewUsers() {
-        try {
-            const response = await axios.get("http://127.0.0.1:3000/users");
-            setUsers(response.data)
-        } catch (e) {
-            console.log(e);
-        }
+    const taskId = parseInt(e.dataTransfer.getData("text/plain"));
+    
+    if (draggedTask.status === newStatus) {
+      setDraggedTask(null);
+      return;
     }
 
-    async function viewTasks() {
-        try {
-            const response = await axios.get(url);
-            setTasks(response.data)
-        } catch (error) {
-            console.log("Erro ao buscar tarefas", error);
-        }
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        task.id === taskId ? { ...task, status: newStatus } : task
+      )
+    );
+
+    try {
+      await axios.patch(`${url}/${taskId}`, { status: newStatus });
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === taskId ? { ...task, status: draggedTask.status } : task
+        )
+      );
+      Swal.fire("Erro!", "Não foi possível mover a tarefa", "error");
     }
 
-    const openEditModal = (task) => {
-        setEditingTask(task);
-        setIsModalOpen(true);
-        resetEditForm(task);
-    };
+    setDraggedTask(null);
+  };
 
-    const handleUpdateTask = (data) => {
-        const payload = {
-            descricao: data.descricao,
-            setor: data.setor,
-            prioridade: data.prioridade,
-            usuario: Number(data.usuario),
-            status: data.status || editingTask.status
-        };
-        updateTask(editingTask.id, payload);
-    };
+  const handleDragEnd = (e) => {
+    e.currentTarget.classList.remove("dragging");
+    setDraggedTask(null);
+  };
 
-    const updateTask = async (id, updatedData) => {
-        try {
-            await axios.patch(`http://127.0.0.1:3000/tasks/${id}`, updatedData);
-            viewTasks();
-            setIsModalOpen(false);
-            Swal.fire({
-                title: "Tarefa atualizada com sucesso!",
-                icon: "success",
-                draggable: true
-            });
-        } catch (e) {
-            console.error("Erro ao atualizar tarefa", e);
-            Swal.fire({
-                title: "Erro ao atualizar tarefa",
-                icon: "error",
-                draggable: true
-            });
-        }
-    };
+  // Buscar dados iniciais
+  useEffect(() => {
+    fetchTasks();
+    fetchUsers();
+  }, []);
 
-    const deleteTask = async (id) => {
-        try {
-            await axios.delete(`http://127.0.0.1:3000/tasks/${id}`);
-            viewTasks();
-            Swal.fire({
-                title: "Tarefa deletada com sucesso!",
-                icon: "success",
-                draggable: true
-            });
-        } catch (e) {
-            console.log(e);
-        }
+  // Agrupar tarefas por status
+  const tasksPorStatus = {
+    "A Fazer": tasks.filter(task => task.status === "A Fazer"),
+    "Fazendo": tasks.filter(task => task.status === "Fazendo"),
+    "Pronto": tasks.filter(task => task.status === "Pronto")
+  };
+
+  // Enviar formulário de edição
+  const onSubmitEdit = (data) => {
+    if (editingTask) {
+      updateTask(editingTask.id, data);
+      setIsModalOpen(false);
     }
+  };
 
-    useEffect(() => {
-        viewTasks();
-        viewUsers();
-    }, [])
+  // Função para obter a classe CSS baseada na prioridade
+  const getPrioridadeClass = (prioridade) => {
+    switch (prioridade) {
+      case "Alta": return "alta";
+      case "Media": return "media";
+      case "Baixa": return "baixa";
+      default: return "";
+    }
+  };
 
-    return (
-        <section className="tarefas">
-            <h1>Tarefas</h1>
-            <div className="colunas">
-                {["A Fazer", "Fazendo", "Pronto"].map((statusColumn) => (
-                    <div className="coluna" key={statusColumn}>
-                        <h2>{statusColumn}</h2>
-                        <div className="cards-column">
-                            {tasks.filter(task => task.status === statusColumn).length > 0 ? (
-                                tasks.filter(task => task.status === statusColumn).map(task => (
-                                    <div className="card-tarefa" key={task.id}>
-                                        <div className="separador-campo">
-                                            <label className="label-campo" id={`desc-label-${task.id}`}>Descrição</label>
-                                            <span aria-labelledby={`desc-label-${task.id}`}>{task.descricao}</span>
-                                        </div>
-                                        <div className="separador-campo">
-                                            <label className="label-campo" id={`setor-label-${task.id}`}>Setor</label>
-                                            <span aria-labelledby={`setor-label-${task.id}`}>{task.setor}</span>
-                                        </div>
-                                        <div className="separador-campo">
-                                            <label className="label-campo" id={`prio-label-${task.id}`}>Prioridade</label>
-                                            <span aria-labelledby={`prio-label-${task.id}`}>{task.prioridade}</span>
-                                        </div>
-                                        <div className="separador-campo">
-                                            <label className="label-campo" id={`user-label-${task.id}`}>Vinculada A</label>
-                                            <span aria-labelledby={`user-label-${task.id}`}>
-                                                {usuarios.find(u => u.id == task.usuario)?.nome || "Usuário não encontrado"}
-                                            </span>
-                                        </div>
-                                        <div className="opt-actions">
-                                            <button aria-label={`Editar tarefa: ${task.descricao}`} onClick={() => openEditModal(task)}>Editar</button>
-                                            <button aria-label={`Excluir tarefa: ${task.descricao}`} onClick={() => deleteTask(task.id)}>Excluir</button>
-                                        </div>
-                                        <div className="separador-campo">
-                                            <label htmlFor={`status-select-${task.id}`}>Status</label>
-                                            <select
-                                                id={`status-select-${task.id}`}
-                                                aria-label={`Alterar status da tarefa: ${task.descricao}`}
-                                                value={statusChanges[task.id] || task.status}
-                                                onChange={(e) => setStatusChanges({...statusChanges, [task.id]: e.target.value})}
-                                            >
-                                                <option value="A Fazer">A fazer</option>
-                                                <option value="Fazendo">Fazendo</option>
-                                                <option value="Pronto">Pronto</option>
-                                            </select>
-                                            <button
-                                                onClick={() => updateTask(task.id, { status: statusChanges[task.id] || task.status })}
-                                                aria-label={`Confirmar alteração de status para a tarefa: ${task.descricao}`}
-                                            >
-                                                Alterar Status
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <p>Nenhuma tarefa {statusColumn.toLowerCase()}</p>
-                            )}
-                        </div>
+  return (
+    <section className="tarefas">
+      <div className="colunas">
+        {["A Fazer", "Fazendo", "Pronto"].map((status) => (
+          <div 
+            className="coluna" 
+            key={status}
+            onDragOver={(e) => handleDragOver(e, status)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, status)}
+          >
+            <h2>{status} ({tasksPorStatus[status].length})</h2>
+            <div className="cards-column">
+              {tasksPorStatus[status].map((task) => (
+                <div 
+                  key={task.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, task)}
+                  onDragEnd={handleDragEnd}
+                  className="card-tarefa"
+                >
+                  <div className="card-content">
+                    <div className="campo">
+                      <label>Descrição:</label>
+                      <p>{task.descricao}</p>
                     </div>
-                ))}
-
-                {isModalOpen && (
-                    <ModalComponent
-                      onClose={() => setIsModalOpen(false)}
-                      isOpen={isModalOpen}
-                      aria-modal="true"
-                      aria-labelledby="modal-title"
-                    >
-                        <h2 id="modal-title">Editar Tarefa</h2>
-                        <form onSubmit={handleEditSubmit(handleUpdateTask)} noValidate>
-                            <label htmlFor="descricao-input">Descrição</label>
-                            <input
-                                id="descricao-input"
-                                type="text"
-                                {...editRegister("descricao")}
-                                aria-invalid={editErrors.descricao ? "true" : "false"}
-                                aria-describedby={editErrors.descricao ? "descricao-error" : undefined}
-                            />
-                            {editErrors.descricao && (
-                                <span className="error" role="alert" id="descricao-error">
-                                    {editErrors.descricao.message}
-                                </span>
-                            )}
-
-                            <label htmlFor="setor-input">Setor</label>
-                            <input
-                                id="setor-input"
-                                type="text"
-                                {...editRegister("setor")}
-                                aria-invalid={editErrors.setor ? "true" : "false"}
-                                aria-describedby={editErrors.setor ? "setor-error" : undefined}
-                            />
-                            {editErrors.setor && (
-                                <span className="error" role="alert" id="setor-error">
-                                    {editErrors.setor.message}
-                                </span>
-                            )}
-
-                            <label htmlFor="prioridade-select">Prioridade</label>
-                            <select
-                                id="prioridade-select"
-                                {...editRegister("prioridade")}
-                                aria-invalid={editErrors.prioridade ? "true" : "false"}
-                                aria-describedby={editErrors.prioridade ? "prioridade-error" : undefined}
-                            >
-                                <option value="Alta">Alta</option>
-                                <option value="Media">Média</option>
-                                <option value="Baixa">Baixa</option>
-                            </select>
-                            {editErrors.prioridade && (
-                                <span className="error" role="alert" id="prioridade-error">
-                                    {editErrors.prioridade.message}
-                                </span>
-                            )}
-
-                            <label htmlFor="usuario-select">Usuário</label>
-                            <select
-                                id="usuario-select"
-                                {...editRegister("usuario")}
-                                aria-invalid={editErrors.usuario ? "true" : "false"}
-                                aria-describedby={editErrors.usuario ? "usuario-error" : undefined}
-                            >
-                                <option value="">Escolha um usuário</option>
-                                {usuarios.map(user => (
-                                    <option key={user.id} value={user.id}>{user.nome}</option>
-                                ))}
-                            </select>
-                            {editErrors.usuario && (
-                                <span className="error" role="alert" id="usuario-error">
-                                    {editErrors.usuario.message}
-                                </span>
-                            )}
-
-                            <label htmlFor="status-select-modal">Status</label>
-                            <select
-                                id="status-select-modal"
-                                {...editRegister("status")}
-                                aria-invalid={editErrors.status ? "true" : "false"}
-                                aria-describedby={editErrors.status ? "status-error" : undefined}
-                            >
-                                <option value="A Fazer">A Fazer</option>
-                                <option value="Fazendo">Fazendo</option>
-                                <option value="Pronto">Pronto</option>
-                            </select>
-                            {editErrors.status && (
-                                <span className="error" role="alert" id="status-error">
-                                    {editErrors.status.message}
-                                </span>
-                            )}
-
-                            <div className="btns">
-                                <button type="submit" className="saveButton">Salvar</button>
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-bottom exitBottom">Fechar</button>
-                            </div>
-                        </form>
-                    </ModalComponent>
-                )}
+                    <div className="campo">
+                      <label>Setor:</label>
+                      <p>{task.setor}</p>
+                    </div>
+                    <div className="campo">
+                      <label>Prioridade:</label>
+                      <p>
+                        <span className={`prioridade ${getPrioridadeClass(task.prioridade)}`}>
+                          {task.prioridade}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="campo">
+                      <label>Responsável:</label>
+                      <p>
+                        {usuarios.find(u => u.id === task.usuario)?.nome || "Não atribuído"}
+                      </p>
+                    </div>
+                    
+                    <div className="acoes">
+                      <button 
+                        onClick={() => openEditModal(task)}
+                        className="btn-editar"
+                      >
+                        Editar
+                      </button>
+                      <button 
+                        onClick={() => deleteTask(task.id)}
+                        className="btn-excluir"
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {tasksPorStatus[status].length === 0 && (
+                <div className="empty-state">
+                  <p>Nenhuma tarefa {status.toLowerCase()}</p>
+                </div>
+              )}
             </div>
-        </section>
-    )
+          </div>
+        ))}
+      </div>
+
+      {/* Modal de Edição */}
+      <ModalComponent
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Editar Tarefa"
+      >
+        <form onSubmit={handleSubmit(onSubmitEdit)} className="form-edicao">
+          <div className="campo-form">
+            <label htmlFor="descricao">Descrição *</label>
+            <textarea
+              id="descricao"
+              {...register("descricao")}
+              rows="3"
+            />
+            {errors.descricao && (
+              <span className="erro">{errors.descricao.message}</span>
+            )}
+          </div>
+
+          <div className="campo-form">
+            <label htmlFor="setor">Setor *</label>
+            <input
+              id="setor"
+              type="text"
+              {...register("setor")}
+            />
+            {errors.setor && (
+              <span className="erro">{errors.setor.message}</span>
+            )}
+          </div>
+
+          <div className="campo-form">
+            <label htmlFor="prioridade">Prioridade *</label>
+            <select id="prioridade" {...register("prioridade")}>
+              <option value="">Selecione...</option>
+              <option value="Alta">Alta</option>
+              <option value="Media">Média</option>
+              <option value="Baixa">Baixa</option>
+            </select>
+            {errors.prioridade && (
+              <span className="erro">{errors.prioridade.message}</span>
+            )}
+          </div>
+
+          <div className="campo-form">
+            <label htmlFor="usuario">Responsável *</label>
+            <select id="usuario" {...register("usuario")}>
+              <option value="">Selecione um usuário...</option>
+              {usuarios.map(usuario => (
+                <option key={usuario.id} value={usuario.id}>
+                  {usuario.nome}
+                </option>
+              ))}
+            </select>
+            {errors.usuario && (
+              <span className="erro">{errors.usuario.message}</span>
+            )}
+          </div>
+
+          <div className="acoes-form">
+            <button type="button" onClick={() => setIsModalOpen(false)}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn-salvar">
+              Salvar Alterações
+            </button>
+          </div>
+        </form>
+      </ModalComponent>
+    </section>
+  );
 }
