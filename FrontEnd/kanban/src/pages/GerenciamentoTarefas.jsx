@@ -17,10 +17,15 @@ export default function GerenciamentoTarefas() {
 
   // Schema de validação
   const taskSchema = z.object({
-    descricao: z.string().min(5).max(200),
-    setor: z.string().min(2).max(50),
-    prioridade: z.enum(["Alta", "Media", "Baixa"]),
-    usuario: z.preprocess((val) => Number(val), z.number().int().min(1)),
+    descricao: z.string().min(5, "Mínimo 5 caracteres").max(200, "Máximo 200 caracteres"),
+    setor: z.string().min(2, "Mínimo 2 caracteres").max(50, "Máximo 50 caracteres"),
+    prioridade: z.enum(["Alta", "Media", "Baixa"], {
+      errorMap: () => ({ message: "Selecione uma prioridade" }),
+    }),
+    usuario: z.preprocess((val) => Number(val), z.number().int().min(1, "Selecione um usuário")),
+    status: z.enum(["A Fazer", "Fazendo", "Pronto"], {
+      errorMap: () => ({ message: "Selecione um status" }),
+    }),
   });
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
@@ -56,7 +61,8 @@ export default function GerenciamentoTarefas() {
       descricao: task.descricao,
       setor: task.setor,
       prioridade: task.prioridade,
-      usuario: task.usuario
+      usuario: task.usuario || "",
+      status: task.status || "A Fazer"
     });
   };
 
@@ -64,10 +70,9 @@ export default function GerenciamentoTarefas() {
   const updateTask = async (id, updatedData) => {
     try {
       await axios.patch(`${url}/${id}`, updatedData);
-      setTasks(prev => prev.map(task => 
+      setTasks(prev => prev.map(task =>
         task.id === id ? { ...task, ...updatedData } : task
       ));
-      Swal.fire("Sucesso!", "Tarefa atualizada com sucesso!", "success");
     } catch (error) {
       console.error("Erro ao atualizar tarefa", error);
       Swal.fire("Erro!", "Não foi possível atualizar a tarefa", "error");
@@ -99,7 +104,12 @@ export default function GerenciamentoTarefas() {
     }
   };
 
-  // ✅ DRAG AND DROP SIMPLES E FUNCIONAL
+  // Atualizar status direto no card
+  const handleStatusChange = async (taskId, newStatus) => {
+    updateTask(taskId, { status: newStatus });
+  };
+
+  // DRAG AND DROP
   const handleDragStart = (e, task) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = "move";
@@ -107,7 +117,7 @@ export default function GerenciamentoTarefas() {
     e.currentTarget.classList.add("dragging");
   };
 
-  const handleDragOver = (e, status) => {
+  const handleDragOver = (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     e.currentTarget.classList.add("drag-over");
@@ -120,34 +130,17 @@ export default function GerenciamentoTarefas() {
   const handleDrop = async (e, newStatus) => {
     e.preventDefault();
     e.currentTarget.classList.remove("drag-over");
-    
+
     if (!draggedTask) return;
 
     const taskId = parseInt(e.dataTransfer.getData("text/plain"));
-    
+
     if (draggedTask.status === newStatus) {
       setDraggedTask(null);
       return;
     }
 
-    setTasks(prevTasks => 
-      prevTasks.map(task => 
-        task.id === taskId ? { ...task, status: newStatus } : task
-      )
-    );
-
-    try {
-      await axios.patch(`${url}/${taskId}`, { status: newStatus });
-    } catch (error) {
-      console.error("Erro ao atualizar status:", error);
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
-          task.id === taskId ? { ...task, status: draggedTask.status } : task
-        )
-      );
-      Swal.fire("Erro!", "Não foi possível mover a tarefa", "error");
-    }
-
+    updateTask(taskId, { status: newStatus });
     setDraggedTask(null);
   };
 
@@ -177,7 +170,7 @@ export default function GerenciamentoTarefas() {
     }
   };
 
-  // Função para obter a classe CSS baseada na prioridade
+  // Classe da prioridade
   const getPrioridadeClass = (prioridade) => {
     switch (prioridade) {
       case "Alta": return "alta";
@@ -191,8 +184,8 @@ export default function GerenciamentoTarefas() {
     <section className="tarefas">
       <div className="colunas">
         {["A Fazer", "Fazendo", "Pronto"].map((status) => (
-          <div 
-            className="coluna" 
+          <div
+            className="coluna"
             key={status}
             onDragOver={(e) => handleDragOver(e, status)}
             onDragLeave={handleDragLeave}
@@ -201,7 +194,7 @@ export default function GerenciamentoTarefas() {
             <h2>{status} ({tasksPorStatus[status].length})</h2>
             <div className="cards-column">
               {tasksPorStatus[status].map((task) => (
-                <div 
+                <div
                   key={task.id}
                   draggable
                   onDragStart={(e) => handleDragStart(e, task)}
@@ -227,19 +220,30 @@ export default function GerenciamentoTarefas() {
                     </div>
                     <div className="campo">
                       <label>Responsável:</label>
-                      <p>
-                        {usuarios.find(u => u.id === task.usuario)?.nome || "Não atribuído"}
-                      </p>
+                      <p>{usuarios.find(u => u.id === task.usuario)?.nome || "Não atribuído"}</p>
                     </div>
-                    
+
+                    {/* Novo select de status direto no card */}
+                    <div className="campo">
+                      <label>Status:</label>
+                      <select
+                        value={task.status}
+                        onChange={(e) => handleStatusChange(task.id, e.target.value)}
+                      >
+                        <option value="A Fazer">A Fazer</option>
+                        <option value="Fazendo">Fazendo</option>
+                        <option value="Pronto">Pronto</option>
+                      </select>
+                    </div>
+
                     <div className="acoes">
-                      <button 
+                      <button
                         onClick={() => openEditModal(task)}
                         className="btn-editar"
                       >
                         Editar
                       </button>
-                      <button 
+                      <button
                         onClick={() => deleteTask(task.id)}
                         className="btn-excluir"
                       >
@@ -249,7 +253,7 @@ export default function GerenciamentoTarefas() {
                   </div>
                 </div>
               ))}
-              
+
               {tasksPorStatus[status].length === 0 && (
                 <div className="empty-state">
                   <p>Nenhuma tarefa {status.toLowerCase()}</p>
@@ -269,26 +273,14 @@ export default function GerenciamentoTarefas() {
         <form onSubmit={handleSubmit(onSubmitEdit)} className="form-edicao">
           <div className="campo-form">
             <label htmlFor="descricao">Descrição *</label>
-            <textarea
-              id="descricao"
-              {...register("descricao")}
-              rows="3"
-            />
-            {errors.descricao && (
-              <span className="erro">{errors.descricao.message}</span>
-            )}
+            <textarea id="descricao" {...register("descricao")} rows="3" />
+            {errors.descricao && <span className="erro">{errors.descricao.message}</span>}
           </div>
 
           <div className="campo-form">
             <label htmlFor="setor">Setor *</label>
-            <input
-              id="setor"
-              type="text"
-              {...register("setor")}
-            />
-            {errors.setor && (
-              <span className="erro">{errors.setor.message}</span>
-            )}
+            <input id="setor" type="text" {...register("setor")} />
+            {errors.setor && <span className="erro">{errors.setor.message}</span>}
           </div>
 
           <div className="campo-form">
@@ -299,9 +291,7 @@ export default function GerenciamentoTarefas() {
               <option value="Media">Média</option>
               <option value="Baixa">Baixa</option>
             </select>
-            {errors.prioridade && (
-              <span className="erro">{errors.prioridade.message}</span>
-            )}
+            {errors.prioridade && <span className="erro">{errors.prioridade.message}</span>}
           </div>
 
           <div className="campo-form">
@@ -314,9 +304,18 @@ export default function GerenciamentoTarefas() {
                 </option>
               ))}
             </select>
-            {errors.usuario && (
-              <span className="erro">{errors.usuario.message}</span>
-            )}
+            {errors.usuario && <span className="erro">{errors.usuario.message}</span>}
+          </div>
+
+          <div className="campo-form">
+            <label htmlFor="status">Status *</label>
+            <select id="status" {...register("status")}>
+              <option value="">Selecione...</option>
+              <option value="A Fazer">A Fazer</option>
+              <option value="Fazendo">Fazendo</option>
+              <option value="Pronto">Pronto</option>
+            </select>
+            {errors.status && <span className="erro">{errors.status.message}</span>}
           </div>
 
           <div className="acoes-form">
