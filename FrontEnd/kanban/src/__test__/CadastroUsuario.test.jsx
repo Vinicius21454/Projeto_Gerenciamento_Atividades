@@ -13,5 +13,11 @@ describe("Cadastro de Usuário", ()=>{
         expect(emailInput).toBeTruthy();
         expect(botao).toBeTruthy();
 
+    });
+
+    it("Exibe erros de válidação ao colocar dados inválidos", async () =>{
+        render (<CadastroUsuario/>);
+
+        fireEvent,click(screen.getByText(/Minimo de 3 caracteres/i)).toBeInTheDocumnet();
     })
 })
