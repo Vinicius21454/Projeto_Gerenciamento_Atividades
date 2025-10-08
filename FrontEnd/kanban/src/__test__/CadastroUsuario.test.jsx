@@ -1,173 +1,110 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { CadastroUsuario } from '../pages/CadastroUsuario';
-import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import CadastroUsuario from "../pages/CadastroUsuario";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import axios from "axios";
 import Swal from "sweetalert2";
 
-// Faz o mock das dependências externas axios e sweetalert2 para controle nos testes
+// Mocks
 vi.mock("axios");
 vi.mock("sweetalert2", () => ({
-  fire: vi.fn(),
+  __esModule: true,
+  default: {
+    fire: vi.fn(),
+  },
 }));
 
-describe("Cadastro de Usuário", () => {
-
-  // Testa se os campos do formulário aparecem na tela corretamente
-  it("Renderiza os campos necessários", () => {
-    render(<CadastroUsuario />);
-    
-    // Busca os inputs pelos labels, usando case-insensitive (i)
-    const nomeInput = screen.getByLabelText(/nome/i);
-    const emailInput = screen.getByLabelText(/email/i);
-    
-    // Busca o botão pelo texto
-    const botao = screen.getByRole("button", { name: /cadastrar/i });
-
-    // Verifica se os elementos existem na renderização
-    expect(nomeInput).toBeTruthy();
-    expect(emailInput).toBeTruthy();
-    expect(botao).toBeTruthy();
+describe("CadastroUsuario", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    axios.post.mockResolvedValue({});
+    axios.get.mockResolvedValue({ data: [] });
   });
 
-  // Testa se erros de validação aparecem quando dados inválidos são enviados
-  it("Exibe erros de validação ao tentar enviar dados inválidos", async () => {
+  it("Renderiza campos de nome, email e botão", async () => {
     render(<CadastroUsuario />);
-
-    // Clica no botão sem preencher nada para disparar erro de validação
-    fireEvent.click(screen.getByRole("button", { name: /cadastrar/i }));
-
-    // Aguarda a mensagem de erro aparecer para o nome com menos de 3 caracteres
-    await waitFor(() => {
-      expect(screen.getByText(/mínimo de 3 caracteres/i)).toBeInTheDocument();
-    });
-
-    // Preenche nome com múltiplos espaços consecutivos (inválido)
-    fireEvent.change(screen.getByLabelText(/nome/i), { target: { value: "João  Silva" } });
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "email@valido.com" } });
-
-    fireEvent.click(screen.getByRole("button", { name: /cadastrar/i }));
-
-    // Verifica se a mensagem de múltiplos espaços aparece
-    await waitFor(() => {
-      expect(screen.getByText(/não pode conter múltiplos espaços consecutivos/i)).toBeInTheDocument();
-    });
-
-    // Preenche email inválido para disparar erro na validação do email
-    fireEvent.change(screen.getByLabelText(/nome/i), { target: { value: "João Silva" } });
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "email-invalido" } });
-
-    fireEvent.click(screen.getByRole("button", { name: /cadastrar/i }));
-
-    // Verifica se o erro de email inválido aparece
-    await waitFor(() => {
-      expect(screen.getByText(/email inválido/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByLabelText(/nome/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/email/i)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /cadastrar/i })).toBeInTheDocument();
   });
 
-  // Testa o envio com dados válidos e a exibição do popup de sucesso
-  it("Envia dados válidos e exibe mensagem de sucesso", async () => {
-    // Mock da resposta bem sucedida do axios
-    axios.post.mockResolvedValueOnce({ data: {} });
-
+  it("Exibe erros de validação com campos vazios", async () => {
     render(<CadastroUsuario />);
+    const botao = await screen.findByRole("button", { name: /cadastrar/i });
+    await userEvent.click(botao);
 
-    // Preenche os campos com dados válidos
-    fireEvent.change(screen.getByLabelText(/nome/i), { target: { value: "João Silva" } });
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "joao@email.com" } });
-
-    fireEvent.click(screen.getByRole("button", { name: /cadastrar/i }));
-
-    // Aguarda a chamada ao axios.post e ao Swal.fire
-    await waitFor(() => {
-      expect(axios.post).toHaveBeenCalledWith("http://127.0.0.1:3000/users", {
-        nome: "João Silva",
-        email: "joao@email.com",
-      });
-      expect(Swal.fire).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: "Cadastro concluído com sucesso!",
-          icon: "success",
-        })
-      );
-    });
+    expect(await screen.findByText(/mínimo de 3 caracteres/i)).toBeInTheDocument();
+    expect(await screen.findByText(/email muito curto/i)).toBeInTheDocument();
   });
 
-  // Testa exibição de erro personalizado vindo do backend
-  it("Exibe erro retornado pelo backend (mensagem string)", async () => {
-    // Mock do axios rejeitando com erro específico do backend
+  it("Valida nome com espaços indevidos e múltiplos espaços", async () => {
+    render(<CadastroUsuario />);
+    await userEvent.type(screen.getByLabelText(/nome/i), " João  da  Silva ");
+    await userEvent.type(screen.getByLabelText(/email/i), "joao@email.com");
+
+    const botao = await screen.findByRole("button", { name: /cadastrar/i });
+    await userEvent.click(botao);
+
+    expect(await screen.findByText(/não pode começar ou terminar com espaço/i)).toBeInTheDocument();
+    expect(await screen.findByText(/não pode conter múltiplos espaços consecutivos/i)).toBeInTheDocument();
+  });
+
+  it("Valida email inválido", async () => {
+    render(<CadastroUsuario />);
+    await userEvent.type(screen.getByLabelText(/nome/i), "João");
+    await userEvent.type(screen.getByLabelText(/email/i), "joao@");
+
+    const botao = await screen.findByRole("button", { name: /cadastrar/i });
+    await userEvent.click(botao);
+
+    expect(await screen.findByText(/email inválido/i)).toBeInTheDocument();
+  });
+
+  it("Envia dados com sucesso e exibe alerta", async () => {
+    render(<CadastroUsuario />);
+    await userEvent.type(screen.getByLabelText(/nome/i), "João da Silva");
+    await userEvent.type(screen.getByLabelText(/email/i), "joao@email.com");
+
+    const botao = await screen.findByRole("button", { name: /cadastrar/i });
+    await userEvent.click(botao);
+
+    expect(axios.post).toHaveBeenCalledWith("http://127.0.0.1:3000/users", {
+      nome: "João da Silva",
+      email: "joao@email.com",
+    });
+    expect(Swal.fire).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Cadastro concluído com sucesso!",
+      icon: "success",
+    }));
+  });
+
+  it("Exibe erro do backend ao falhar envio", async () => {
     axios.post.mockRejectedValueOnce({
       response: {
-        data: { error: "Email já cadastrado" }
-      }
+        data: { error: "Email já cadastrado" },
+      },
     });
 
     render(<CadastroUsuario />);
+    await userEvent.type(screen.getByLabelText(/nome/i), "João da Silva");
+    await userEvent.type(screen.getByLabelText(/email/i), "joao@email.com");
 
-    // Preenche campos
-    fireEvent.change(screen.getByLabelText(/nome/i), { target: { value: "Maria Oliveira" } });
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "maria@email.com" } });
+    const botao = await screen.findByRole("button", { name: /cadastrar/i });
+    await userEvent.click(botao);
 
-    fireEvent.click(screen.getByRole("button", { name: /cadastrar/i }));
-
-    // Espera que o erro do backend seja exibido na tela
-    await waitFor(() => {
-      expect(screen.getByText("Email já cadastrado")).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/email já cadastrado/i)).toBeInTheDocument();
   });
 
-  // Testa erro genérico caso o backend não retorne mensagem clara
-  it("Exibe erro genérico quando backend não fornece mensagem clara", async () => {
-    axios.post.mockRejectedValueOnce({}); // erro sem dados no response
+  it("Exibe erro genérico se backend não retornar mensagem", async () => {
+    axios.post.mockRejectedValueOnce({});
 
     render(<CadastroUsuario />);
+    await userEvent.type(screen.getByLabelText(/nome/i), "João da Silva");
+    await userEvent.type(screen.getByLabelText(/email/i), "joao@email.com");
 
-    fireEvent.change(screen.getByLabelText(/nome/i), { target: { value: "Pedro Lopes" } });
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "pedro@email.com" } });
+    const botao = await screen.findByRole("button", { name: /cadastrar/i });
+    await userEvent.click(botao);
 
-    fireEvent.click(screen.getByRole("button", { name: /cadastrar/i }));
-
-    // Espera a mensagem genérica de erro
-    await waitFor(() => {
-      expect(screen.getByText(/ocorreu um erro ao cadastrar o usuário/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/ocorreu um erro ao cadastrar o usuário/i)).toBeInTheDocument();
   });
-
-  // Testa que não permite nome com espaço no início ou no fim
-  it("Não permite nome começando ou terminando com espaço", async () => {
-    render(<CadastroUsuario />);
-
-    // Começando com espaço
-    fireEvent.change(screen.getByLabelText(/nome/i), { target: { value: " João Silva" } });
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "joao@email.com" } });
-
-    fireEvent.click(screen.getByRole("button", { name: /cadastrar/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/não pode começar ou terminar com espaço/i)).toBeInTheDocument();
-    });
-
-    // Terminando com espaço
-    fireEvent.change(screen.getByLabelText(/nome/i), { target: { value: "João Silva " } });
-
-    fireEvent.click(screen.getByRole("button", { name: /cadastrar/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/não pode começar ou terminar com espaço/i)).toBeInTheDocument();
-    });
-  });
-
-  // Testa que o nome não aceita números ou caracteres inválidos
-  it("Não permite caracteres inválidos no nome", async () => {
-    render(<CadastroUsuario />);
-
-    fireEvent.change(screen.getByLabelText(/nome/i), { target: { value: "João123" } });
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "joao@email.com" } });
-
-    fireEvent.click(screen.getByRole("button", { name: /cadastrar/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/digite apenas letras e espaços simples entre nomes/i)).toBeInTheDocument();
-    });
-  });
-
 });

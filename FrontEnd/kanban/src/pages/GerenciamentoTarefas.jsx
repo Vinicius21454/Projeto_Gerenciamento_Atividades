@@ -79,180 +79,180 @@ export default function GerenciamentoTarefas() {
     }
   };
 
-  // Deletar tarefa
-  const deleteTask = async (id) => {
-    const result = await Swal.fire({
-      title: "Tem certeza?",
-      text: "Esta ação não pode ser desfeita!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Sim, deletar!",
-      cancelButtonText: "Cancelar"
-    });
+    // Deletar tarefa
+    const deleteTask = async (id) => {
+      const result = await Swal.fire({
+        title: "Tem certeza?",
+        text: "Esta ação não pode ser desfeita!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Sim, deletar!",
+        cancelButtonText: "Cancelar"
+      });
 
-    if (result.isConfirmed) {
-      try {
-        await axios.delete(`${url}/${id}`);
-        setTasks(prev => prev.filter(task => task.id !== id));
-        Swal.fire("Deletado!", "Tarefa deletada com sucesso.", "success");
-      } catch (error) {
-        console.error("Erro ao deletar tarefa", error);
-        Swal.fire("Erro!", "Não foi possível deletar a tarefa", "error");
+      if (result.isConfirmed) {
+        try {
+          await axios.delete(`${url}/${id}`);
+          setTasks(prev => prev.filter(task => task.id !== id));
+          Swal.fire("Deletado!", "Tarefa deletada com sucesso.", "success");
+        } catch (error) {
+          console.error("Erro ao deletar tarefa", error);
+          Swal.fire("Erro!", "Não foi possível deletar a tarefa", "error");
+        }
       }
-    }
-  };
+    };
 
-  // Atualizar status direto no card
-  const handleStatusChange = async (taskId, newStatus) => {
-    updateTask(taskId, { status: newStatus });
-  };
+    // Atualizar status direto no card
+    const handleStatusChange = async (taskId, newStatus) => {
+      updateTask(taskId, { status: newStatus });
+    };
 
-  // DRAG AND DROP
-  const handleDragStart = (e, task) => {
-    setDraggedTask(task);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", task.id.toString());
-    e.currentTarget.classList.add("dragging");
-  };
+    // DRAG AND DROP
+    const handleDragStart = (e, task) => {
+      setDraggedTask(task);
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", task.id.toString());
+      e.currentTarget.classList.add("dragging");
+    };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    e.currentTarget.classList.add("drag-over");
-  };
+    const handleDragOver = (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      e.currentTarget.classList.add("drag-over");
+    };
 
-  const handleDragLeave = (e) => {
-    e.currentTarget.classList.remove("drag-over");
-  };
+    const handleDragLeave = (e) => {
+      e.currentTarget.classList.remove("drag-over");
+    };
 
-  const handleDrop = async (e, newStatus) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove("drag-over");
+    const handleDrop = async (e, newStatus) => {
+      e.preventDefault();
+      e.currentTarget.classList.remove("drag-over");
 
-    if (!draggedTask) return;
+      if (!draggedTask) return;
 
-    const taskId = parseInt(e.dataTransfer.getData("text/plain"));
+      const taskId = parseInt(e.dataTransfer.getData("text/plain"));
 
-    if (draggedTask.status === newStatus) {
+      if (draggedTask.status === newStatus) {
+        setDraggedTask(null);
+        return;
+      }
+
+      updateTask(taskId, { status: newStatus });
       setDraggedTask(null);
-      return;
-    }
+    };
 
-    updateTask(taskId, { status: newStatus });
-    setDraggedTask(null);
-  };
+    const handleDragEnd = (e) => {
+      e.currentTarget.classList.remove("dragging");
+      setDraggedTask(null);
+    };
 
-  const handleDragEnd = (e) => {
-    e.currentTarget.classList.remove("dragging");
-    setDraggedTask(null);
-  };
+    // Buscar dados iniciais
+    useEffect(() => {
+      fetchTasks();
+      fetchUsers();
+    }, []);
 
-  // Buscar dados iniciais
-  useEffect(() => {
-    fetchTasks();
-    fetchUsers();
-  }, []);
+    // Agrupar tarefas por status
+    const tasksPorStatus = {
+      "A Fazer": tasks.filter(task => task.status === "A Fazer"),
+      "Fazendo": tasks.filter(task => task.status === "Fazendo"),
+      "Pronto": tasks.filter(task => task.status === "Pronto")
+    };
 
-  // Agrupar tarefas por status
-  const tasksPorStatus = {
-    "A Fazer": tasks.filter(task => task.status === "A Fazer"),
-    "Fazendo": tasks.filter(task => task.status === "Fazendo"),
-    "Pronto": tasks.filter(task => task.status === "Pronto")
-  };
+    // Enviar formulário de edição
+    const onSubmitEdit = (data) => {
+      if (editingTask) {
+        updateTask(editingTask.id, data);
+        setIsModalOpen(false);
+      }
+    };
 
-  // Enviar formulário de edição
-  const onSubmitEdit = (data) => {
-    if (editingTask) {
-      updateTask(editingTask.id, data);
-      setIsModalOpen(false);
-    }
-  };
+    // Classe da prioridade
+    const getPrioridadeClass = (prioridade) => {
+      switch (prioridade) {
+        case "Alta": return "alta";
+        case "Media": return "media";
+        case "Baixa": return "baixa";
+        default: return "";
+      }
+    };
 
-  // Classe da prioridade
-  const getPrioridadeClass = (prioridade) => {
-    switch (prioridade) {
-      case "Alta": return "alta";
-      case "Media": return "media";
-      case "Baixa": return "baixa";
-      default: return "";
-    }
-  };
+    return (
+      <section className="tarefas">
+        <div className="colunas">
+          {["A Fazer", "Fazendo", "Pronto"].map((status) => (
+            <div
+              className="coluna"
+              key={status}
+              onDragOver={(e) => handleDragOver(e, status)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, status)}
+            >
+              <h2>{status} ({tasksPorStatus[status].length})</h2>
+              <div className="cards-column">
+                {tasksPorStatus[status].map((task) => (
+                  <div
+                    key={task.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, task)}
+                    onDragEnd={handleDragEnd}
+                    className="card-tarefa"
+                  >
+                    <div className="card-content">
+                      <div className="campo">
+                        <label>Descrição:</label>
+                        <p>{task.descricao}</p>
+                      </div>
+                      <div className="campo">
+                        <label>Setor:</label>
+                        <p>{task.setor}</p>
+                      </div>
+                      <div className="campo">
+                        <label>Prioridade:</label>
+                        <p>
+                          <span className={`prioridade ${getPrioridadeClass(task.prioridade)}`}>
+                            {task.prioridade}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="campo">
+                        <label>Responsável:</label>
+                        <p>{usuarios.find(u => u.id === task.usuario)?.nome || "Não atribuído"}</p>
+                      </div>
 
-  return (
-    <section className="tarefas">
-      <div className="colunas">
-        {["A Fazer", "Fazendo", "Pronto"].map((status) => (
-          <div
-            className="coluna"
-            key={status}
-            onDragOver={(e) => handleDragOver(e, status)}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, status)}
-          >
-            <h2>{status} ({tasksPorStatus[status].length})</h2>
-            <div className="cards-column">
-              {tasksPorStatus[status].map((task) => (
-                <div
-                  key={task.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, task)}
-                  onDragEnd={handleDragEnd}
-                  className="card-tarefa"
-                >
-                  <div className="card-content">
-                    <div className="campo">
-                      <label>Descrição:</label>
-                      <p>{task.descricao}</p>
-                    </div>
-                    <div className="campo">
-                      <label>Setor:</label>
-                      <p>{task.setor}</p>
-                    </div>
-                    <div className="campo">
-                      <label>Prioridade:</label>
-                      <p>
-                        <span className={`prioridade ${getPrioridadeClass(task.prioridade)}`}>
-                          {task.prioridade}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="campo">
-                      <label>Responsável:</label>
-                      <p>{usuarios.find(u => u.id === task.usuario)?.nome || "Não atribuído"}</p>
-                    </div>
+                      {/* Novo select de status direto no card */}
+                      <div className="campo">
+                        <label>Status:</label>
+                        <select
+                          value={task.status}
+                          onChange={(e) => handleStatusChange(task.id, e.target.value)}
+                        >
+                          <option value="A Fazer">A Fazer</option>
+                          <option value="Fazendo">Fazendo</option>
+                          <option value="Pronto">Pronto</option>
+                        </select>
+                      </div>
 
-                    {/* Novo select de status direto no card */}
-                    <div className="campo">
-                      <label>Status:</label>
-                      <select
-                        value={task.status}
-                        onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                      >
-                        <option value="A Fazer">A Fazer</option>
-                        <option value="Fazendo">Fazendo</option>
-                        <option value="Pronto">Pronto</option>
-                      </select>
-                    </div>
-
-                    <div className="acoes">
-                      <button
-                        onClick={() => openEditModal(task)}
-                        className="btn-editar"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => deleteTask(task.id)}
-                        className="btn-excluir"
-                      >
-                        Excluir
-                      </button>
+                      <div className="acoes">
+                        <button
+                          onClick={() => openEditModal(task)}
+                          className="btn-editar"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => deleteTask(task.id)}
+                          className="btn-excluir"
+                        >
+                          Excluir
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
 
               {tasksPorStatus[status].length === 0 && (
                 <div className="empty-state">
